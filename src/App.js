@@ -1,159 +1,78 @@
-import React, { useState, useReducer } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import {useReducer} from 'react';
+import AddTask from './components/AddTask';
+import TaskList from './components/TaskList';
 
-const initalTodos = [
-  {
-    id: uuidv4(),
-    task: 'Learn React',
-    complete: true,
-  },
-  {
-    id: uuidv4(),
-    task: 'Learn Firebase',
-    complete: true,
-  },
-  {
-    id: uuidv4(),
-    task: 'Learn GraphQL',
-    complete: false,
-  },
-];
+export default function TaskApp() {
+  const [tasks, dispatch] = useReducer(tasksReducer, initialTasks);
 
-const filterReducer = (state, action) => {
-  switch (action.type) {
-    case 'SHOW_ALL':
-      return 'ALL';
-    case 'SHOW_COMPLETE':
-      return 'COMPLETE';
-    case 'SHOW_INCOMPLETE':
-      return 'INCOMPLETE';
-    default:
-      throw new Error();
-  }
-};
-
-const todoReducer = (state, action) => {
-  switch (action.type) {
-    case 'DO_TODO':
-      return state.map(todo => {
-        if (todo.id === action.id) {
-          return { ...todo, complete: true };
-        } else {
-          return todo;
-        }
-      });
-    case 'UNDO_TODO':
-      return state.map(todo => {
-        if (todo.id === action.id) {
-          return { ...todo, complete: false };
-        } else {
-          return todo;
-        }
-      });
-    case 'ADD_TODO':
-      return state.concat({
-        task: action.task,
-        id: uuidv4(),
-        complete: false,
-      });
-    default:
-      throw new Error();
-  }
-};
-
-const App = () => {
-  const [filter, dispatchFilter] = useReducer(filterReducer, 'ALL');
-  const [todos, dispatchTodos] = useReducer(todoReducer, initalTodos);
-  const [task, setTask] = useState('');
-
-  const handleShowAll = () => {
-    dispatchFilter({ type: 'SHOW_ALL' });
-  };
-
-  const handleShowComplete = () => {
-    dispatchFilter({ type: 'SHOW_COMPLETE' });
-  };
-
-  const handleShowIncomplete = () => {
-    dispatchFilter({ type: 'SHOW_INCOMPLETE' });
-  };
-
-  const filteredTodos = todos.filter(todo => {
-    if (filter === 'ALL') {
-      return true;
-    }
-
-    if (filter === 'COMPLETE' && todo.complete) {
-      return true;
-    }
-
-    if (filter === 'INCOMPLETE' && !todo.complete) {
-      return true;
-    }
-
-    return false;
-  });
-
-  const handleChangeCheckbox = todo => {
-    dispatchTodos({
-      type: todo.complete ? 'UNDO_TODO' : 'DO_TODO',
-      id: todo.id,
+  function handleAddTask(text) {
+    dispatch({
+      type: 'added',
+      id: nextId++,
+      text: text,
     });
-  };
+  }
 
-  const handleChangeInput = event => {
-    setTask(event.target.value);
-  };
+  function handleChangeTask(task) {
+    dispatch({
+      type: 'changed',
+      task: task,
+    });
+  }
 
-  const handleSubmit = event => {
-    if (task) {
-      dispatchTodos({ type: 'ADD_TODO', task });
-    }
-
-    setTask('');
-
-    event.preventDefault();
-  };
+  function handleDeleteTask(taskId) {
+    dispatch({
+      type: 'deleted',
+      id: taskId,
+    });
+  }
 
   return (
-    <div>
-      <div>
-        <button type="button" onClick={handleShowAll}>
-          Show All
-        </button>
-        <button type="button" onClick={handleShowComplete}>
-          Show Complete
-        </button>
-        <button type="button" onClick={handleShowIncomplete}>
-          Show Incomplete
-        </button>
-      </div>
-
-      <ul>
-        {filteredTodos.map(todo => (
-          <li key={todo.id}>
-            <label>
-              <input
-                type="checkbox"
-                checked={todo.complete}
-                onChange={() => handleChangeCheckbox(todo)}
-              />
-              {todo.task}
-            </label>
-          </li>
-        ))}
-      </ul>
-
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={task}
-          onChange={handleChangeInput}
-        />
-        <button type="submit">Add Todo</button>
-      </form>
-    </div>
+    <>
+      <h1>Prague itinerary</h1>
+      <AddTask onAddTask={handleAddTask} />
+      <TaskList
+        tasks={tasks}
+        onChangeTask={handleChangeTask}
+        onDeleteTask={handleDeleteTask}
+      />
+    </>
   );
-};
+}
 
-export default App;
+function tasksReducer(tasks, action) {
+  switch (action.type) {
+    case 'added': {
+      return [
+        ...tasks,
+        {
+          id: action.id,
+          text: action.text,
+          done: false,
+        },
+      ];
+    }
+    case 'changed': {
+      return tasks.map((t) => {
+        if (t.id === action.task.id) {
+          return action.task;
+        } else {
+          return t;
+        }
+      });
+    }
+    case 'deleted': {
+      return tasks.filter((t) => t.id !== action.id);
+    }
+    default: {
+      throw Error('Unknown action: ' + action.type);
+    }
+  }
+}
+
+let nextId = 3;
+const initialTasks = [
+  {id: 0, text: 'Visit Kafka Museum', done: true},
+  {id: 1, text: 'Watch a puppet show', done: false},
+  {id: 2, text: 'Lennon Wall pic', done: false},
+];
